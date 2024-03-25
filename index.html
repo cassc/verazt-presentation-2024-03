@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>verazt - Ethereum contract compiler </title>
+
+    <link rel="stylesheet" href="dist/reset.css">
+    <link rel="stylesheet" href="dist/reveal.css">
+    <link rel="stylesheet" href="dist/theme/night.css">
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css">
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js-mermaid-plugin@2.0.0/plugin/mermaid/mermaid.js"></script>
+    <style>
+      img{
+          border-radius:5px;-moz-box-shadow:3px 3px 5px 6px #999; -webkit-box-shadow: 3px 3px 5px 6px #999; box-shadow:3px 3px 5px 6px #999;
+      }
+      pre code{
+          scrollbar-width: 1px !important;
+      }
+      p {
+          text-align:left;
+      }
+
+      section ul {
+          width: 100%;
+      }
+
+      section ol {
+          width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section data-markdown="README.md"
+                 data-separator-notes="^NOTE:"
+                 data-separator-vertical="^\r?\n___\r?\n$">
+        </section>
+      </div>
+    </div>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script>
+      // More info about initialization & config:
+      // - https://revealjs.com/initialization/
+      // - https://revealjs.com/config/
+      Reveal.initialize({
+	hash: true,
+        width: 1280,
+        height: 960,
+
+        // Factor of the display size that should remain empty around
+        // the content
+        margin: 0.1,
+        center: false,
+
+        // Bounds for smallest/largest possible scale to apply to content
+        minScale: 0.3,
+        maxScale: 3.0,
+        transitionSpeed: 'fast', // default/fast/slow
+        progress: false,
+        slideNumber: true,
+
+	plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+      });
+    </script>
+  </body>
+</html>
