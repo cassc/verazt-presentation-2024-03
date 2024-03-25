@@ -1,151 +1,135 @@
 
 
-# Projects update
+## CuEVM updates: precompile contracts and tests
 
-<div >CHEN Li @ SBIP</div>
-
----
-
-## verazt-webapp: New features
-
-- **Human-Readable inputs and outputs, EOA account**
-- Link and Unlink google and github accounts
-- **Make patch by ChatGPT configurable**
-- Update email using OTP and update username
-- Renew account by user
-- **Add ansible deployment playbook**
-
-
-``` json
-...
-  "readable_input": [
-          {
-            "eoa": false,  <--- Whether its EOA, for internally deployed this might not be correct
-            "label": "AttackerTransparent", <--- Name of the actual contract passed in
-            "type": "AnotherClass", <--- Expected type as specificed in the function signature
-            "uri": null,   <--- When the address is a contract, this points to the source code path if it's available.
-            "value": "0xcee9d0f55a264e41acbf9c2fdd163bb077b7e261"
-          }
-        ]
-...
-```
-
-
-___
-
-## verazt-webapp: Bug Fixes
-
-- **Fix RabbitMQ flaky connection issue**
-- Resolving challenges related to solcx upgrading.
-- Fix caching not working for contract summary by ChatGPT
-- Fix quota displayed in frontend incorrect bug (`user.quota.numFilesRemaining`)
+<div style="text-align: center;">
+By Minh, Dan, CL
+</div>
 
 
 ---
 
-##  Audit for DBOE
+## Precompile contracts
+
+- What are they?
+  - special contracts built into the EVM
+  - perform specific operations that would be costly or impractical to implement in
+    regular Solidity code
+  - typically implemented in the EVM execution engine
+
+---
+
+## CuEVM precompiles implementation status
+
+<img src="./precompiles-status.png" width="100%" />
+
+-  ecRecover, ecAdd, ecMul, and ecPairing. by Minh
+-  Identity, Modexp, SHA-256 by Dan
+-  Blake2f, RIPEMD-160 by CL
+
+---
+
+## Tests: ethereum/tests
+
+ethereum/tests (https://github.com/ethereum/tests)
+  - Test are defined in json files
+    - it contains pre states and expected post stateRoot
+    - <span style="color:red">a single test can contain transactions for different hard forks</span>
+  - We used this to compare execution traces between REVM and CuEVM
+  - <span style="color:red"> Test can take a long time to run (~17 minutes for SSTORE opcode test)</span>
+  - Few EVMs can pass all the tests: http://retesteth.ethdevops.io/
 
 
-- Manual auditing mainly to find business logic bugs
-- Create PoC
-- Found some high risk bugs
+<img src="./retesteth-stats.png" width="800" />
 
-___
+---
 
-##  Audit for DBOE: Access control and centralization
+## Tests: goevmlab
 
-- Access control and centralization (**by Minh**)
-  - In the Decentralised Portfolio Margin (DPML) contract the MMLP (market makers
-    and liquidity providers) can withdraw all stable coins from the contract
+[goevmlab](https://github.com/holiman/goevmlab) tests protocol implemtations:
+  - comparing results between different EVM implementations
+  - generating and running Fuzz tests
+  - tracediff: compare traces
 
-``` solidity
-// Fake factory contract
-...
-    function balanceOf(address account) external view returns (uint256){
-        return 1000000000000000000 ether;
-    }
 
-    function approve(address a, uint256 value) public returns (bool){
-        return true;
-    }
-}
-```
+Difference from ethereum/tests:
+- only support single test in the input json
+- some `post` information (stateRoot, logsRoot, etc) are ignored
 
-``` js
-// MMLP can update to use contracts under his control (a fake factory contract and an address to receive ether in this case)
-await dboePortfolioMarginer.connect(mmlp).updateDBOEInfo(fakeOptionFactory.address, badActor.address);
-await usdc.connect(badActor).transferFrom(dboePortfolioMarginer.address, badActor.address, 100000 * ( 10 ** USDT_DECIMALS));
-// ...
-// =>
-// hacker USDC profit: 100000 USD
-```
+---
 
-___
 
-##  Audit for DBOE: Price manipulation
+## CuEVM + goevmlab: fuzz test
 
-- Denial of Service:
-  - mailicious stable coin stakers (lenders) can prevent borrower from borrow money even the DPML contract
-    has enough balance
+<img src="./fuzz-test.png" width="80%" />
 
-- Price manipulation
-  - mailicious stable coin stakers (lenders) can manipulate price to gain extremly high profit
+---
 
+## CuEVM + goevmlab: Fuzz test example
 
 ``` bash
-❯ hardhat test test/portfolioMarginerHack.spec.ts
-sub1 USDC balance: 10000
-sub1 staking 40 USD
-sub1 USDC balance: 9960
-dboePortfolioMarginer USDC balance:  BigNumber { value: "0" }
-sub1 unstake 100 times
-Pending pendingWithdrawalAmt BigNumber { value: "4011574073" }
+> generic-fuzzer --revme binaries/revm --geth geth \
+    --cuevm ~/projects/sbip-sg/CuEVM/out/cpu_debug_interpreter --fork Shanghai
 ...
-Pending pendingWithdrawalAmt BigNumber { value: "658800586431173" }
-dboePortfolioMarginer now have enough balance
-sub1 unstake again
 ...
-sub1 balance: 76872.54192536
-  ```
-
-
----
-
-
-## SmartFuzz and TinyEVM
-
-- TineyEVM
-  - Added **address creation override** through the inspector (benefit: state visible during a transaction)
-  - Added **Live network fork**
-  - Added **tracing** to help debugging transaction execution
-- SmartFuzz
-  - Updated to use the latest tinyevm and fixed some compatibility errors.
-
----
-
-
-## cuEVM Project
-
-- Learning CUDA Parallel Programming
-- Created a light weight EVM Interpreter
-  - Execute raw transactions with optional initial env and states
-  - Parse and run de facto standard ethtest cases
-- cuEvm Runner in evm-interpreter for testing to make sure cuEVM is compatible with
-  standard EVM (ongoing)
-
+INFO [03-25|10:24:51.072] Shortcutting through abort
+Consensus error
+Testcase: /tmp/00000000-mixed-3.json
+- geth-0: ./geth-0-output.jsonl
+  - command: /home/garfield/bin/geth --json --noreturndata --nomemory statetest /tmp/00000000-mixed-3.json
+- revm-0: ./revm-0-output.jsonl
+  - command: binaries/revm statetest --json /tmp/00000000-mixed-3.json
+- cuevm-0: ./cuevm-0-output.jsonl
+  - command: /home/garfield/projects/sbip-sg/CuEVM/out/cpu_debug_interpreter --input /tmp/00000000-mixed-3.json --output /dev/null
+-------
+prev:           both: {"depth":1,"pc":364,"gas":7977163,"op":242,"opName":"CALLCODE","stack":["0x0","0xd5","0x0","0xbc","0x9","0x5140bd9b2f284cb4796c697a8a530981e13c1a92ce7ec16d206199ea19ddbae"]}
+diff:         geth-0: {"depth":1,"pc":365,"gas":7970059,"op":80,"opName":"POP","stack":["0x1"]}
+diff:        cuevm-0: {"depth":1,"pc":365,"gas":7945059,"op":80,"opName":"POP","stack":["0x1"]}
+```
 
 ---
 
-## Support Solidity compilation in the frontend (ongoing)
+## goevmlab: Tracediff
+
+``` bash
+❯ tracediff cuevm-0-output.jsonl geth-0-output.jsonl
+```
+
+<img src="./tracediff.png" width="800px" />
+
+<!-- Caveats: -->
+<!-- - no memory data -->
+<!-- - no intermediate account storage data -->
+
+---
+
+## Problems with Fuzz test
+
+Problems:
+- has no contraol on what kind of tests to run
+- the generated transaction can be very complex, not helpful for debugging failed tests
+
+---
+
+## CuEVM + goevmlab + ethereum/tests:
+
+<img src="./current-test-goevmtest.png" width="800px" />
+
+---
+
+<!-- TODO a slide about current test results? -->
 
 
-- Capture compilation bugs and early feedback to users
-- Reducing backend resource usage
-- Reusing AST from the compilation in the backend
+## Future work
+
+- Implement all the precompiled contracts
+- Fix test failures for both CPU and GPU implementations
+- Peformance tuning
+- Update to support the latest Cancun fork
+- Compare log events
+- Compute stateRoot in CuEVM
 
 
 ---
 
 ### Thank You & Questions
-
-<img src="./defi.png" width="400" />
