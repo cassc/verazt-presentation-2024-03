@@ -9,13 +9,17 @@ By Minh, Dan, CL
 
 ---
 
-## Precompile contracts
+## Precompiled contracts
 
-- What are they?
-  - special contracts built into the EVM
-  - perform specific operations that would be costly or impractical to implement in
-    regular Solidity code
-  - typically implemented in the EVM execution engine
+What are they?
+ - special contracts built into the EVM
+ - perform specific operations that would be costly or impractical to implement in
+   regular Solidity code
+ - typically implemented in the EVM execution engine
+
+Implementation challenges:
+ - GPU support: limited number of available libraries
+ - Performance and resource usage
 
 ---
 
@@ -47,10 +51,11 @@ ethereum/tests (https://github.com/ethereum/tests)
 ## Tests: goevmlab
 
 [goevmlab](https://github.com/holiman/goevmlab) tests protocol implemtations:
-  - comparing results between different EVM implementations
-  - generating and running Fuzz tests
-  - tracediff: compare traces
 
+Benefits:
+- enables comparison between different EVM implementations (all major EVMs, geth, besu, erigon, revm, nethermind, etc)
+- provides tool to compare traces + decoded opcode inputs
+- fuzz test
 
 Difference from ethereum/tests:
 - only support single test in the input json
@@ -61,7 +66,7 @@ Difference from ethereum/tests:
 
 ## CuEVM + goevmlab: fuzz test
 
-<img src="./fuzz-test.png" width="80%" />
+<img src="./fuzz-test.png" width="100%" />
 
 ---
 
@@ -95,7 +100,7 @@ diff:        cuevm-0: {"depth":1,"pc":365,"gas":7945059,"op":80,"opName":"POP","
 ❯ tracediff cuevm-0-output.jsonl geth-0-output.jsonl
 ```
 
-<img src="./tracediff.png" width="800px" />
+<img src="./tracediff.png" width="90%" />
 
 <!-- Caveats: -->
 <!-- - no memory data -->
@@ -106,8 +111,9 @@ diff:        cuevm-0: {"depth":1,"pc":365,"gas":7945059,"op":80,"opName":"POP","
 ## Problems with Fuzz test
 
 Problems:
-- has no contraol on what kind of tests to run
+- has no control on what kind of tests to run
 - the generated transaction can be very complex, not helpful for debugging failed tests
+
 
 ---
 
@@ -125,6 +131,7 @@ Problems:
 - Implement all the precompiled contracts
 - Fix test failures for both CPU and GPU implementations
 - Peformance tuning
+  - current 5x-10x compared to tinyevm implementation by Minh
 - Update to support the latest Cancun fork
 - Compare log events
 - Compute stateRoot in CuEVM
